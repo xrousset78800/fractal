@@ -154,6 +154,7 @@ class Scope
             $scopeArray = [$checkScopeSegment];
         }
         $scopeString = implode('.', (array) $scopeArray);
+
         return in_array($scopeString, $this->manager->getRequestedIncludes());
     }
 
@@ -180,6 +181,7 @@ class Scope
             $scopeArray = [$checkScopeSegment];
         }
         $scopeString = implode('.', (array) $scopeArray);
+
         return in_array($scopeString, $this->manager->getRequestedExcludes());
     }
 

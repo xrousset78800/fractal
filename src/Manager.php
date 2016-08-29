@@ -32,6 +32,7 @@ class Manager
      * @var array
      */
     protected $requestedExcludes = [];
+
     /**
      * Array containing modifiers as keys and an array value of params.
      *
@@ -89,14 +90,12 @@ class Manager
      *
      * @param string $include
      *
-     * @return \League\Fractal\ParamBag|null
+     * @return \League\Fractal\ParamBag
      */
     public function getIncludeParams($include)
     {
-        if (! isset($this->includeParams[$include])) {
-            return;
-        }
-        $params = $this->includeParams[$include];
+        $params = isset($this->includeParams[$include]) ? $this->includeParams[$include] : [];
+
         return new ParamBag($params);
     }
     /**
@@ -117,6 +116,7 @@ class Manager
     {
         return $this->requestedExcludes;
     }
+
     /**
      * Get Serializer.
      *
@@ -207,6 +207,40 @@ class Manager
         }
         return $this;
     }
+    /**
+     * Parse Exclude String.
+     *
+     * @param array|string $excludes Array or csv string of resources to exclude
+     *
+     * @return $this
+     */
+    public function parseExcludes($excludes)
+    {
+        $this->requestedExcludes = [];
+
+        if (is_string($excludes)) {
+            $excludes = explode(',', $excludes);
+        }
+
+        if (! is_array($excludes)) {
+            throw new \InvalidArgumentException(
+                'The parseExcludes() method expects a string or an array. '.gettype($excludes).' given'
+            );
+        }
+
+        foreach ($excludes as $excludeName) {
+            $excludeName = $this->trimToAcceptableRecursionLevel($excludeName);
+
+            if (in_array($excludeName, $this->requestedExcludes)) {
+                continue;
+            }
+
+            $this->requestedExcludes[] = $excludeName;
+        }
+
+        return $this;
+    }
+
     /**
      * Set Recursion Limit.
      *
