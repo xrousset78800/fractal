@@ -1,5 +1,4 @@
 <?php
-
 /*
  * This file is part of the League\Fractal package.
  *
@@ -8,13 +7,10 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
 namespace League\Fractal\Serializer;
-
 use InvalidArgumentException;
 use League\Fractal\Pagination\PaginatorInterface;
 use League\Fractal\Resource\ResourceInterface;
-
 class JsonApiSerializer extends ArraySerializer
 {
     protected $baseUrl;
@@ -30,7 +26,6 @@ class JsonApiSerializer extends ArraySerializer
         $this->baseUrl = $baseUrl;
         $this->rootObjects = [];
     }
-
     /**
      * Serialize a collection.
      *
@@ -42,14 +37,11 @@ class JsonApiSerializer extends ArraySerializer
     public function collection($resourceKey, array $data)
     {
         $resources = [];
-
         foreach ($data as $resource) {
             $resources[] = $this->item($resourceKey, $resource)['data'];
         }
-
         return ['data' => $resources];
     }
-
     /**
      * Serialize an item.
      *
@@ -61,7 +53,6 @@ class JsonApiSerializer extends ArraySerializer
     public function item($resourceKey, array $data)
     {
         $id = $this->getIdFromData($data);
-
         $resource = [
             'data' => [
                 'type' => $resourceKey,
@@ -69,15 +60,12 @@ class JsonApiSerializer extends ArraySerializer
                 'attributes' => $data,
             ],
         ];
-
         unset($resource['data']['attributes']['id']);
-
         if ($this->shouldIncludeLinks()) {
             $resource['data']['links'] = [
                 'self' => "{$this->baseUrl}/$resourceKey/$id",
             ];
         }
-
         return $resource;
     }
 
@@ -138,20 +126,19 @@ class JsonApiSerializer extends ArraySerializer
             $result['links'] = $result['meta']['pagination']['links'];
             unset($result['meta']['pagination']['links']);
         }
-
         return $result;
     }
 
     /**
+     * @param string $resourceKey
      * @return array
      */
-    public function null()
+    public function null($resourceKey)
     {
         return [
             'data' => null,
         ];
     }
-
     /**
      * Serialize the included data.
      *
@@ -183,10 +170,8 @@ class JsonApiSerializer extends ArraySerializer
                 }
             }
         }
-
         return empty($serializedData) ? [] : ['included' => $serializedData];
     }
-
     /**
      * Indicates if includes should be side-loaded.
      *
@@ -198,7 +183,7 @@ class JsonApiSerializer extends ArraySerializer
     }
 
     /**
-     * @param array $data
+     * @param array|null $data
      * @param array $includedData
      *
      * @return array
@@ -206,12 +191,10 @@ class JsonApiSerializer extends ArraySerializer
     public function injectData($data, $includedData)
     {
         $relationships = $this->parseRelationships($includedData);
-
         if (!empty($relationships)) {
-            $data = $this->fillRelationships($data, $relationships);
+            $data = $this->fillRelationships((array)$data, $relationships);
         }
-
-        return $data;
+        return (array)$data;
     }
 
     /**
@@ -237,13 +220,10 @@ class JsonApiSerializer extends ArraySerializer
 
         // Filter out the root objects
         $filteredIncludes = array_filter($includedData['included'], [$this, 'filterRootObject']);
-
         // Reset array indizes
         $includedData['included'] = array_merge([], $filteredIncludes);
-
         return $includedData;
     }
-
     /**
      * Filter function to delete root objects from array.
      *
@@ -255,7 +235,6 @@ class JsonApiSerializer extends ArraySerializer
     {
         return !$this->isRootObject($object);
     }
-
     /**
      * Set the root objects of the JSON API tree.
      *
@@ -267,7 +246,6 @@ class JsonApiSerializer extends ArraySerializer
             return "{$object['type']}:{$object['id']}";
         }, $objects);
     }
-
     /**
      * Determines whether an object is a root object of the JSON API tree.
      *
@@ -326,10 +304,9 @@ class JsonApiSerializer extends ArraySerializer
             }
         } else { // Single resource
             foreach ($relationships as $key => $relationship) {
-                $data = $this->fillRelationshipAsSingleResource($data, $relationship, $key);
+                $data = $this->FillRelationshipAsSingleResource($data, $relationship, $key);
             }
         }
-
         return $data;
     }
 
@@ -347,7 +324,6 @@ class JsonApiSerializer extends ArraySerializer
                 $relationships = $this->buildRelationships($includeKey, $relationships, $includeObject, $key);
             }
         }
-
         return $relationships;
     }
 
@@ -365,7 +341,6 @@ class JsonApiSerializer extends ArraySerializer
         }
         return $data['id'];
     }
-
     /**
      * Keep all sideloaded inclusion data on the top level.
      *
@@ -377,7 +352,6 @@ class JsonApiSerializer extends ArraySerializer
     {
         $includedData = [];
         $linkedIds = [];
-
         foreach ($data as $value) {
             foreach ($value as $includeObject) {
                 if (isset($includeObject['included'])) {
@@ -385,7 +359,6 @@ class JsonApiSerializer extends ArraySerializer
                         $includeType = $object['type'];
                         $includeId = $object['id'];
                         $cacheKey = "$includeType:$includeId";
-
                         if (!array_key_exists($cacheKey, $linkedIds)) {
                             $includedData[] = $object;
                             $linkedIds[$cacheKey] = $object;
@@ -394,10 +367,8 @@ class JsonApiSerializer extends ArraySerializer
                 }
             }
         }
-
         return [$includedData, $linkedIds];
     }
-
     /**
      * Whether or not the serializer should include `links` for resource objects.
      *
@@ -442,34 +413,22 @@ class JsonApiSerializer extends ArraySerializer
         }
     }
 
-
     /**
      * Loops over the relationships of the provided data and formats it
      *
      * @param $data
      * @param $relationship
-     * @param $key
+     * @param $nestedDepth
      *
      * @return array
      */
-    private function fillRelationshipAsCollection($data, $relationship, $key)
+    private function fillRelationshipAsCollection($data, $relationship, $nestedDepth)
     {
         foreach ($relationship as $index => $relationshipData) {
-            $data['data'][$index]['relationships'][$key] = $relationshipData;
-
-            if ($this->shouldIncludeLinks()) {
-                $data['data'][$index]['relationships'][$key] = array_merge([
-                    'links' => [
-                        'self' => "{$this->baseUrl}/{$data['data'][$index]['type']}/{$data['data'][$index]['id']}/relationships/$key",
-                        'related' => "{$this->baseUrl}/{$data['data'][$index]['type']}/{$data['data'][$index]['id']}/$key",
-                    ],
-                ], $data['data'][$index]['relationships'][$key]);
-            }
+            $data['data'][$index]['relationships'][$nestedDepth] = $relationshipData;
         }
-
         return $data;
     }
-
 
     /**
      * @param $data
@@ -506,9 +465,9 @@ class JsonApiSerializer extends ArraySerializer
     private function buildRelationships($includeKey, $relationships, $includeObject, $key)
     {
         $relationships = $this->addIncludekeyToRelationsIfNotSet($includeKey, $relationships);
-
         if ($this->isNull($includeObject)) {
-            $relationship = $this->null();
+            $relationship = $this->null($includeKey);
+
         } elseif ($this->isEmpty($includeObject)) {
             $relationship = [
                 'data' => [],
